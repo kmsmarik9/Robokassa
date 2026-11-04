@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>KmsDev.Robokassa</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>KmsDev</Authors>
+    <Description>Клиент Robokassa: счета Invoice API и проверка уведомлений.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="KmsDev.Robokassa.Tests" />
+    <Using Include="KmsDev.Robokassa" />
+    <Using Include="KmsDev.Robokassa.Exceptions" />
+    <Using Include="KmsDev.Robokassa.Models" />
+    <Using Include="KmsDev.Robokassa.Requests" />
+    <Using Include="KmsDev.Robokassa.Responses" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
+    <PackageReference Include="Metalama.Framework" Version="2026.1.31" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.10.0" />
+  </ItemGroup>
+
+</Project>
