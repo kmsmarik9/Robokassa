@@ -4,15 +4,19 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	<OutputType>Library</OutputType>
+	  
     <PackageId>KmsDev.Robokassa</PackageId>
     <Version>1.0.0</Version>
     <Authors>KmsDev</Authors>
-    <Description>Клиент Robokassa: счета Invoice API и проверка уведомлений.</Description>
+    <Description>Robokassa.Net Client</Description>
+	<PackageProjectUrl>https://github.com/kmsmarik9/Robokassa</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+	<PublishRepositoryUrl>true</PublishRepositoryUrl>
+	<EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
   <ItemGroup>
