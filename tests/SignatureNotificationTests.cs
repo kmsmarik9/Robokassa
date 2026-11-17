@@ -37,7 +37,41 @@ public sealed class SignatureNotificationTests
         Assert.Equal("100.000000", result.OutSum);
         Assert.Equal(100m, result.Amount);
         Assert.Equal("OK42", client.Api.Notifications.ResultResponse(result));
+        Assert.Empty(result.UserFields);
         Assert.Throws<RobokassaException>(() => client.Api.Notifications.VerifyResultUrl(fields, 101m));
+    }
+
+    [Fact]
+    public void UserFieldsAreSelectedByPrefix()
+    {
+        using var client = Client(new RobokassaMerchantCredentials
+        {
+            MerchantLogin = "demo",
+            Password1 = "test",
+            Password2 = "test",
+            IsTest = false
+        });
+        var fields = Fields();
+        fields["kfm_target"] = "order";
+        fields["kfm_paymentid"] = "15";
+        fields["kfm_paymenttype"] = "Card";
+        fields["Fee"] = "1.00";
+        fields["PaymentMethod"] = "BankCard";
+
+        var result = client.Api.Notifications.VerifyResultUrl(fields, userFieldsPrefix: "kfm_");
+        Assert.Equal("order", result.UserFields["kfm_target"]);
+        Assert.Equal("15", result.UserFields["kfm_paymentid"]);
+        Assert.Equal("Card", result.UserFields["kfm_paymenttype"]);
+        Assert.Equal(3, result.UserFields.Count);
+        Assert.Equal("заказ", result.ShpFields["Shp_a"]);
+        Assert.Equal("2", result.ShpFields["Shp_b"]);
+        Assert.Empty(client.Api.Notifications.VerifyResultUrl(fields).UserFields);
+        Assert.Empty(client.Api.Notifications.VerifyResultUrl(fields, userFieldsPrefix: "KFM_").UserFields);
+        Assert.Empty(client.Api.Notifications.VerifyResultUrl(fields, userFieldsPrefix: "Shp_").UserFields);
+
+        var success = client.Api.Notifications.VerifySuccessUrl(fields, "kfm_");
+        Assert.Equal("15", success.UserFields["kfm_paymentid"]);
+        Assert.Equal(3, success.UserFields.Count);
     }
 
     [Theory]

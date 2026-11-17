@@ -8,11 +8,18 @@ namespace KmsDev.Robokassa
 {
     internal static class RobokassaNotificationVerifier
     {
-        public static VerifiedNotification VerifyResultUrl(RobokassaMerchantCredentials credentials, IEnumerable<KeyValuePair<string, string>> fields, decimal? expectedAmount) =>
-            Verify(credentials, fields, static credentials => credentials.NotificationPassword, true, expectedAmount);
+        public static VerifiedNotification VerifyResultUrl(
+            RobokassaMerchantCredentials credentials,
+            IEnumerable<KeyValuePair<string, string>> fields,
+            decimal? expectedAmount,
+            string? userFieldsPrefix) =>
+            Verify(credentials, fields, static credentials => credentials.NotificationPassword, true, expectedAmount, userFieldsPrefix);
 
-        public static VerifiedNotification VerifySuccessUrl(RobokassaMerchantCredentials credentials, IEnumerable<KeyValuePair<string, string>> fields) =>
-            Verify(credentials, fields, static credentials => credentials.PaymentPassword, false, null);
+        public static VerifiedNotification VerifySuccessUrl(
+            RobokassaMerchantCredentials credentials,
+            IEnumerable<KeyValuePair<string, string>> fields,
+            string? userFieldsPrefix) =>
+            Verify(credentials, fields, static credentials => credentials.PaymentPassword, false, null, userFieldsPrefix);
 
         public static ResultUrl2Notification VerifyResultUrl2(
             RobokassaMerchantCredentials credentials,
@@ -104,12 +111,15 @@ namespace KmsDev.Robokassa
             IEnumerable<KeyValuePair<string, string>> fields,
             Func<RobokassaMerchantCredentials, string> passwordSelector,
             bool result,
-            decimal? expectedAmount)
+            decimal? expectedAmount,
+            string? userFieldsPrefix)
         {
             ArgumentNullException.ThrowIfNull(fields);
             const string operation = "notifications.verify";
             var all = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var shp = new Dictionary<string, string>(StringComparer.Ordinal);
+            var userFields = new Dictionary<string, string>(StringComparer.Ordinal);
+            var userPrefix = string.IsNullOrEmpty(userFieldsPrefix) ? null : userFieldsPrefix;
             foreach (var pair in fields)
             {
                 if (pair.Value is null || !all.TryAdd(pair.Key, pair.Value))
@@ -120,6 +130,10 @@ namespace KmsDev.Robokassa
                 if (pair.Key.StartsWith("Shp_", StringComparison.OrdinalIgnoreCase))
                 {
                     shp.Add(pair.Key, pair.Value);
+                }
+                else if (userPrefix is not null && pair.Key.StartsWith(userPrefix, StringComparison.Ordinal))
+                {
+                    userFields.Add(pair.Key, pair.Value);
                 }
             }
 
@@ -153,7 +167,7 @@ namespace KmsDev.Robokassa
             VerifiedNotification notification;
             try
             {
-                notification = new VerifiedNotification(sum, id, shp, result);
+                notification = new VerifiedNotification(sum, id, shp, userFields, result);
             }
             catch (ArgumentException)
             {
