@@ -16,13 +16,21 @@ namespace KmsDev.Robokassa.Exceptions
             RobokassaErrorKind kind,
             string operation,
             HttpStatusCode? statusCode = null,
-            int? apiCode = null)
-            : base($"ошибка robokassa: {kind}, операция {operation}")
+            int? apiCode = null,
+            string? detail = null,
+            Exception? innerException = null)
+            : base(FormatMessage(kind, operation, detail), innerException)
         {
             Kind = kind;
             Operation = operation;
             StatusCode = statusCode;
             ApiCode = apiCode;
+        }
+
+        private static string FormatMessage(RobokassaErrorKind kind, string operation, string? detail)
+        {
+            var message = $"ошибка robokassa: {kind}, операция {operation}";
+            return string.IsNullOrWhiteSpace(detail) ? message : $"{message}: {detail.Trim()}";
         }
     }
 }

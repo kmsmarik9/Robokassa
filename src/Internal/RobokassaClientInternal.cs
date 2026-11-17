@@ -45,7 +45,8 @@ namespace KmsDev.Robokassa
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(SelfCancellationToken, cancellationToken);
             var httpSettings = request.GetRequestHttpSettings();
             using var httpContent = request.GetRequestHttpContent(Credentials);
-            var operation = request.GetOperation();
+
+            var requestName = request.GetType().Name;
 
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(linked.Token);
             timeoutCts.CancelAfter(resilienceSettings.Timeout);
@@ -66,32 +67,42 @@ namespace KmsDev.Robokassa
 
                 if (!httpResponse.IsSuccessStatusCode)
                 {
-                    throw new RobokassaException(RobokassaErrorKind.Http, operation, httpResponse.StatusCode);
+                    string? detail = null;
+                    try
+                    {
+                        var errorBody = await RobokassaResponseReader.ReadBodyAsync(httpResponse, requestName, Credentials.MaxResponseBytes, timeoutCts.Token);
+                        detail = RobokassaResponseReader.ErrorDetail(errorBody);
+                    }
+                    catch (RobokassaException)
+                    {
+                    }
+
+                    throw new RobokassaException(RobokassaErrorKind.Http, requestName, httpResponse.StatusCode, detail: detail);
                 }
 
-                var body = await RobokassaResponseReader.ReadBodyAsync(httpResponse, operation, Credentials.MaxResponseBytes, timeoutCts.Token);
+                var body = await RobokassaResponseReader.ReadBodyAsync(httpResponse, requestName, Credentials.MaxResponseBytes, timeoutCts.Token);
                 var parser = _serviceProvider.GetRequiredKeyedService<IRobokassaResponseParser>(RobokassaResponseNameCache<TResponse>.Value);
-                return RobokassaResponseReader.Parse<TResponse>(parser, body, operation, request.GetSuccessField());
+                return RobokassaResponseReader.Parse<TResponse>(parser, body, requestName, request.GetSuccessField());
             }
             catch (RobokassaException)
             {
                 throw;
             }
-            catch (TimeoutRejectedException)
+            catch (TimeoutRejectedException ex)
             {
-                throw new RobokassaException(RobokassaErrorKind.Timeout, operation);
+                throw new RobokassaException(RobokassaErrorKind.Timeout, requestName, detail: ex.Message, innerException: ex);
             }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && !SelfCancellationToken.IsCancellationRequested)
+            catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested && !SelfCancellationToken.IsCancellationRequested)
             {
-                throw new RobokassaException(RobokassaErrorKind.Timeout, operation);
+                throw new RobokassaException(RobokassaErrorKind.Timeout, requestName, detail: ex.Message, innerException: ex);
             }
-            catch (HttpRequestException)
+            catch (HttpRequestException ex)
             {
-                throw new RobokassaException(RobokassaErrorKind.Transport, operation);
+                throw new RobokassaException(RobokassaErrorKind.Transport, requestName, detail: ex.Message, innerException: ex);
             }
-            catch (IOException)
+            catch (IOException ex)
             {
-                throw new RobokassaException(RobokassaErrorKind.Transport, operation);
+                throw new RobokassaException(RobokassaErrorKind.Transport, requestName, detail: ex.Message, innerException: ex);
             }
         }
     }

@@ -38,7 +38,7 @@ namespace KmsDev.Robokassa
                 using var doc = JsonDocument.Parse(body);
                 if (doc.RootElement.ValueKind != JsonValueKind.Object)
                 {
-                    throw new JsonException();
+                    throw new RobokassaException(RobokassaErrorKind.InvalidResponse, operation);
                 }
 
                 if (successField is not null)
@@ -46,12 +46,12 @@ namespace KmsDev.Robokassa
                     if (!doc.RootElement.TryGetProperty(successField, out var success)
                         || success.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
                     {
-                        throw new JsonException();
+                        throw new RobokassaException(RobokassaErrorKind.InvalidResponse, operation);
                     }
 
                     if (!success.GetBoolean())
                     {
-                        throw new RobokassaException(RobokassaErrorKind.Api, operation);
+                        throw new RobokassaException(RobokassaErrorKind.Api, operation, detail: ReadMessage(doc.RootElement));
                     }
                 }
             }
@@ -59,19 +59,66 @@ namespace KmsDev.Robokassa
             {
                 throw;
             }
-            catch (JsonException)
+            catch (JsonException exception)
             {
-                throw new RobokassaException(RobokassaErrorKind.InvalidResponse, operation);
+                throw InvalidJson(operation, exception);
             }
 
             try
             {
                 return parser.Parse<TResponse>(body);
             }
+            catch (JsonException exception)
+            {
+                throw InvalidJson(operation, exception);
+            }
+        }
+
+        private static readonly string BareJsonExceptionMessage = new JsonException().Message;
+
+        private static RobokassaException InvalidJson(string operation, JsonException exception)
+        {
+            var detail = exception.Message == BareJsonExceptionMessage ? null : exception.Message;
+            return new RobokassaException(RobokassaErrorKind.InvalidResponse, operation, detail: detail, innerException: exception);
+        }
+
+        public static string? ErrorDetail(string? body)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return null;
+            }
+
+            var text = body.Trim();
+            try
+            {
+                using var doc = JsonDocument.Parse(text);
+                if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                {
+                    var message = ReadMessage(doc.RootElement);
+                    if (message is not null)
+                    {
+                        return message;
+                    }
+                }
+            }
             catch (JsonException)
             {
-                throw new RobokassaException(RobokassaErrorKind.InvalidResponse, operation);
             }
+
+            const int limit = 512;
+            return text.Length <= limit ? text : text[..limit];
+        }
+
+        private static string? ReadMessage(JsonElement root)
+        {
+            if (!root.TryGetProperty("message", out var message) || message.ValueKind != JsonValueKind.String)
+            {
+                return null;
+            }
+
+            var text = message.GetString();
+            return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
         }
     }
 

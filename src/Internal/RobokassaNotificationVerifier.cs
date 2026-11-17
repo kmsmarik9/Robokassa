@@ -125,7 +125,7 @@ namespace KmsDev.Robokassa
 
             if (!all.TryGetValue("OutSum", out var sum)
                 || !all.TryGetValue("InvId", out var id)
-                || !all.TryGetValue("SignatureValue", out var actual)
+                || !all.TryGetValue("SignatureValue", out var actualHash)
                 || id.Length == 0
                 || id.Any(c => c < '0' || c > '9')
                 || !long.TryParse(id, NumberStyles.None, CultureInfo.InvariantCulture, out var number)
@@ -144,8 +144,8 @@ namespace KmsDev.Robokassa
                 throw new RobokassaException(RobokassaErrorKind.InvalidSignature, operation);
             }
 
-            var expected = RobokassaSignature.Hash(string.Join(":", parts), credentials.HashAlgorithm);
-            if (!RobokassaSignature.EqualsHex(expected, actual))
+            var expectedHash = RobokassaSignature.Hash(string.Join(":", parts), credentials.HashAlgorithm);
+            if (!RobokassaSignature.EqualsHex(expectedHash, actualHash))
             {
                 throw new RobokassaException(RobokassaErrorKind.InvalidSignature, operation);
             }

@@ -11,8 +11,6 @@ namespace KmsDev.Robokassa
 
         string GetRequestName();
 
-        string GetOperation();
-
         string? GetSuccessField();
     }
 

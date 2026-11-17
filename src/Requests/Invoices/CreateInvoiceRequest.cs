@@ -68,8 +68,6 @@ namespace KmsDev.Robokassa.Requests
 
         public override RobokassaRequestHttpSettings GetRequestHttpSettings() => Settings;
 
-        public override string GetOperation() => "invoices.CreateInvoice";
-
         protected override RobokassaPasswordKind GetPasswordKind() => RobokassaPasswordKind.Payment;
 
         protected override JsonNode GetJwtPayload(RobokassaMerchantCredentials credentials)
@@ -111,7 +109,7 @@ namespace KmsDev.Robokassa
                 || !Uri.TryCreate(response.Url, UriKind.Absolute, out var url)
                 || url.Scheme is not ("http" or "https"))
             {
-                throw new RobokassaException(RobokassaErrorKind.InvalidResponse, request.GetOperation());
+                throw new RobokassaException(RobokassaErrorKind.InvalidResponse, request.GetType().Name);
             }
 
             return response;
