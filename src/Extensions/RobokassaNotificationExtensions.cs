@@ -10,15 +10,13 @@ namespace KmsDev.Robokassa
         /// </summary>
         public static VerifiedNotification VerifyResultUrl(
             this RobokassaClientApiContainer.NotificationsSection notificationsSection,
-            IEnumerable<KeyValuePair<string, string>> fields,
-            decimal? expectedAmount = null,
-            string? userFieldsPrefix = null)
+            IReadOnlyDictionary<string, string> fields,
+            decimal? expectedAmount = null)
         {
             return RobokassaNotificationVerifier.VerifyResultUrl(
                 notificationsSection.RobokassaClient.Credentials,
                 fields,
-                expectedAmount,
-                userFieldsPrefix);
+                expectedAmount);
         }
 
         /// <summary>
@@ -27,13 +25,11 @@ namespace KmsDev.Robokassa
         /// </summary>
         public static VerifiedNotification VerifySuccessUrl(
             this RobokassaClientApiContainer.NotificationsSection notificationsSection,
-            IEnumerable<KeyValuePair<string, string>> fields,
-            string? userFieldsPrefix = null)
+            IReadOnlyDictionary<string, string> fields)
         {
             return RobokassaNotificationVerifier.VerifySuccessUrl(
                 notificationsSection.RobokassaClient.Credentials,
-                fields,
-                userFieldsPrefix);
+                fields);
         }
 
         /// <summary>
@@ -68,7 +64,7 @@ namespace KmsDev.Robokassa
                 throw new ArgumentException("для подтверждения нужен ResultURL");
             }
 
-            return "OK" + notification.InvId;
+            return $"OK{notification.InvIdRaw}";
         }
     }
 }
