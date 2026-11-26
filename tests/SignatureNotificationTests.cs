@@ -30,7 +30,8 @@ public sealed class SignatureNotificationTests
         {
             MerchantLogin = "demo",
             Password2 = "test",
-            IsTest = false
+            IsTest = false,
+            UserFieldsPrefix = "testusf"
         });
         var fields = Fields();
         var result = client.Api.Notifications.VerifyResultUrl(fields, 100m);
@@ -49,7 +50,8 @@ public sealed class SignatureNotificationTests
             MerchantLogin = "demo",
             Password1 = "test",
             Password2 = "test",
-            IsTest = false
+            IsTest = false,
+            UserFieldsPrefix = "testusf"
         });
         var fields = Fields();
         fields["kfm_target"] = "order";
@@ -58,7 +60,7 @@ public sealed class SignatureNotificationTests
         fields["Fee"] = "1.00";
         fields["PaymentMethod"] = "BankCard";
 
-        var result = client.Api.Notifications.VerifyResultUrl(fields, userFieldsPrefix: "kfm_");
+        var result = client.Api.Notifications.VerifyResultUrl(fields);
         Assert.Equal("order", result.UserFields["kfm_target"]);
         Assert.Equal("15", result.UserFields["kfm_paymentid"]);
         Assert.Equal("Card", result.UserFields["kfm_paymenttype"]);
@@ -66,10 +68,10 @@ public sealed class SignatureNotificationTests
         Assert.Equal("заказ", result.ShpFields["Shp_a"]);
         Assert.Equal("2", result.ShpFields["Shp_b"]);
         Assert.Empty(client.Api.Notifications.VerifyResultUrl(fields).UserFields);
-        Assert.Empty(client.Api.Notifications.VerifyResultUrl(fields, userFieldsPrefix: "KFM_").UserFields);
-        Assert.Empty(client.Api.Notifications.VerifyResultUrl(fields, userFieldsPrefix: "Shp_").UserFields);
+        Assert.Empty(client.Api.Notifications.VerifyResultUrl(fields).UserFields);
+        Assert.Empty(client.Api.Notifications.VerifyResultUrl(fields).UserFields);
 
-        var success = client.Api.Notifications.VerifySuccessUrl(fields, "kfm_");
+        var success = client.Api.Notifications.VerifySuccessUrl(fields);
         Assert.Equal("15", success.UserFields["kfm_paymentid"]);
         Assert.Equal(3, success.UserFields.Count);
     }
@@ -85,7 +87,8 @@ public sealed class SignatureNotificationTests
         {
             MerchantLogin = "demo",
             Password2 = "test",
-            IsTest = false
+            IsTest = false,
+            UserFieldsPrefix = "testusf"
         });
         var fields = Fields();
         fields[key] = value;
@@ -96,8 +99,8 @@ public sealed class SignatureNotificationTests
     public void DuplicateCaseInsensitiveFieldsAreRejected()
     {
         using var client = new TestClient();
-        var fields = Fields().ToList();
-        fields.Add(new KeyValuePair<string, string>("outsum", "1"));
+        var fields = Fields();
+        fields.Add("outsum", "1");
         Assert.Throws<RobokassaException>(() => client.Client.Api.Notifications.VerifyResultUrl(fields));
     }
 
@@ -108,7 +111,8 @@ public sealed class SignatureNotificationTests
         {
             MerchantLogin = "demo",
             Password1 = "test",
-            IsTest = false
+            IsTest = false,
+            UserFieldsPrefix = "testusf"
         });
         var notification = client.Api.Notifications.VerifySuccessUrl(Fields());
         Assert.False(notification.IsResultNotification);

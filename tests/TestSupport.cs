@@ -60,7 +60,8 @@ internal sealed class TestClient : IDisposable
                 TestPassword1 = "test1",
                 TestPassword2 = "test2",
                 IsTest = test,
-                HashAlgorithm = algorithm
+                HashAlgorithm = algorithm,
+                UserFieldsPrefix = "testusf"
             });
         });
         _provider = services.BuildServiceProvider();
