@@ -223,7 +223,8 @@ public sealed class InvoiceTests
         {
             MerchantLogin = "other",
             TestPassword1 = "pw",
-            IsTest = true
+            IsTest = true,
+            UserFieldsPrefix = "testusf"
         });
         client.Handler.Respond = async (request, cancellationToken) =>
         {
