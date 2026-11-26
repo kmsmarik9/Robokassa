@@ -26,8 +26,6 @@ namespace KmsDev.Robokassa.Requests
 
         public override RobokassaRequestHttpSettings GetRequestHttpSettings() => Settings;
 
-        public override string GetOperation() => "invoices.NotifyCustomer";
-
         protected override RobokassaPasswordKind GetPasswordKind() => RobokassaPasswordKind.Management;
 
         protected override JsonNode GetJwtPayload(RobokassaMerchantCredentials credentials)

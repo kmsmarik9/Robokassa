@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
@@ -36,7 +37,7 @@ namespace KmsDev.Robokassa.Requests
         [JsonPropertyName("MerchantComments")]
         public string? MerchantComments { get; init; }
 
-        [JsonPropertyName("UserFields")]
+        [JsonIgnore]
         public IReadOnlyDictionary<string, string>? UserFields { get; init; }
 
         [JsonPropertyName("InvoiceItems")]
@@ -68,20 +69,25 @@ namespace KmsDev.Robokassa.Requests
 
         public override RobokassaRequestHttpSettings GetRequestHttpSettings() => Settings;
 
-        public override string GetOperation() => "invoices.CreateInvoice";
-
         protected override RobokassaPasswordKind GetPasswordKind() => RobokassaPasswordKind.Payment;
 
         protected override JsonNode GetJwtPayload(RobokassaMerchantCredentials credentials)
         {
             ArgumentNullException.ThrowIfNull(credentials);
             RobokassaInvoiceRules.ValidateCreate(this, credentials.IsTest);
+
             var payload = (JsonObject)base.GetJwtPayload(credentials);
+
             if (credentials.IsTest)
             {
                 var additional = payload["AdditionalParameters"] as JsonObject ?? new JsonObject();
                 additional["IsTest"] = "1";
                 payload["AdditionalParameters"] = additional;
+            }
+
+            if(UserFields?.Any() ?? false)
+            {
+                payload["UserFields"] = JsonSerializer.SerializeToNode(UserFields.ToDictionary(k => $"{credentials.UserFieldsPrefix}{k.Key}", v => v.Value));
             }
 
             return payload;
@@ -111,7 +117,7 @@ namespace KmsDev.Robokassa
                 || !Uri.TryCreate(response.Url, UriKind.Absolute, out var url)
                 || url.Scheme is not ("http" or "https"))
             {
-                throw new RobokassaException(RobokassaErrorKind.InvalidResponse, request.GetOperation());
+                throw new RobokassaException(RobokassaErrorKind.InvalidResponse, request.GetType().Name);
             }
 
             return response;

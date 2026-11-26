@@ -20,6 +20,8 @@ namespace KmsDev.Robokassa
 
         public bool IsTest { get; init; } = true;
 
+        public required string UserFieldsPrefix { get; init; }
+
         public RobokassaHashAlgorithm HashAlgorithm { get; init; } = RobokassaHashAlgorithm.Md5;
 
         public RobokassaHashAlgorithm RefundHashAlgorithm { get; init; } = RobokassaHashAlgorithm.Sha256;

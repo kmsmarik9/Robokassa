@@ -10,8 +10,6 @@ namespace KmsDev.Robokassa.Requests
 
         public abstract RobokassaRequestHttpSettings GetRequestHttpSettings();
 
-        public abstract string GetOperation();
-
         public virtual string? GetSuccessField() => "isSuccess";
 
         public abstract HttpContent? GetRequestHttpContent(RobokassaMerchantCredentials credentials);

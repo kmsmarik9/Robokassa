@@ -55,17 +55,17 @@ namespace KmsDev.Robokassa
                 _ => throw new ArgumentOutOfRangeException(nameof(algorithm))
             };
             var input = $"{Base64Url(JsonSerializer.SerializeToUtf8Bytes(new { typ = "JWT", alg }))}.{Base64Url(JsonSerializer.SerializeToUtf8Bytes(payload, RobokassaWire.Json))}";
-            var bytes = Encoding.UTF8.GetBytes(input);
+            var inputBytes = Encoding.UTF8.GetBytes(input);
             var secret = Encoding.UTF8.GetBytes(key);
-            byte[] result;
+            byte[] hashResult;
 
             if (algorithm == RobokassaHashAlgorithm.Ripemd160)
             {
                 var hmac = new HMac(new RipeMD160Digest());
                 hmac.Init(new KeyParameter(secret));
-                hmac.BlockUpdate(bytes, 0, bytes.Length);
-                result = new byte[hmac.GetMacSize()];
-                hmac.DoFinal(result, 0);
+                hmac.BlockUpdate(inputBytes, 0, inputBytes.Length);
+                hashResult = new byte[hmac.GetMacSize()];
+                hmac.DoFinal(hashResult, 0);
             }
             else
             {
@@ -78,10 +78,10 @@ namespace KmsDev.Robokassa
                     RobokassaHashAlgorithm.Sha512 => new HMACSHA512(secret),
                     _ => throw new ArgumentOutOfRangeException(nameof(algorithm))
                 };
-                result = hmac.ComputeHash(bytes);
+                hashResult = hmac.ComputeHash(inputBytes);
             }
 
-            return input + "." + Base64Url(result);
+            return input + "." + Base64Url(hashResult);
         }
 
         public static string Base64Url(byte[] bytes) =>

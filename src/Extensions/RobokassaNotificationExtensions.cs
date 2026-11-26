@@ -6,23 +6,30 @@ namespace KmsDev.Robokassa
     {
         /// <summary>
         /// Проверяет подпись ResultURL. Сумма сравнивается с исходной строкой <c>OutSum</c>.
+        /// Параметры с префиксом <paramref name="userFieldsPrefix"/> записываются в <see cref="VerifiedNotification.UserFields"/>.
         /// </summary>
         public static VerifiedNotification VerifyResultUrl(
             this RobokassaClientApiContainer.NotificationsSection notificationsSection,
-            IEnumerable<KeyValuePair<string, string>> fields,
+            IReadOnlyDictionary<string, string> fields,
             decimal? expectedAmount = null)
         {
-            return RobokassaNotificationVerifier.VerifyResultUrl(notificationsSection.RobokassaClient.Credentials, fields, expectedAmount);
+            return RobokassaNotificationVerifier.VerifyResultUrl(
+                notificationsSection.RobokassaClient.Credentials,
+                fields,
+                expectedAmount);
         }
 
         /// <summary>
         /// Проверяет подпись SuccessURL. Этот переход не заменяет серверное подтверждение оплаты.
+        /// Параметры с префиксом <paramref name="userFieldsPrefix"/> записываются в <see cref="VerifiedNotification.UserFields"/>.
         /// </summary>
         public static VerifiedNotification VerifySuccessUrl(
             this RobokassaClientApiContainer.NotificationsSection notificationsSection,
-            IEnumerable<KeyValuePair<string, string>> fields)
+            IReadOnlyDictionary<string, string> fields)
         {
-            return RobokassaNotificationVerifier.VerifySuccessUrl(notificationsSection.RobokassaClient.Credentials, fields);
+            return RobokassaNotificationVerifier.VerifySuccessUrl(
+                notificationsSection.RobokassaClient.Credentials,
+                fields);
         }
 
         /// <summary>
@@ -57,7 +64,7 @@ namespace KmsDev.Robokassa
                 throw new ArgumentException("для подтверждения нужен ResultURL");
             }
 
-            return "OK" + notification.InvId;
+            return $"OK{notification.InvIdRaw}";
         }
     }
 }

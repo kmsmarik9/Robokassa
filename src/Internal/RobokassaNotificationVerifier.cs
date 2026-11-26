@@ -8,10 +8,15 @@ namespace KmsDev.Robokassa
 {
     internal static class RobokassaNotificationVerifier
     {
-        public static VerifiedNotification VerifyResultUrl(RobokassaMerchantCredentials credentials, IEnumerable<KeyValuePair<string, string>> fields, decimal? expectedAmount) =>
+        public static VerifiedNotification VerifyResultUrl(
+            RobokassaMerchantCredentials credentials,
+            IReadOnlyDictionary<string, string> fields,
+            decimal? expectedAmount) =>
             Verify(credentials, fields, static credentials => credentials.NotificationPassword, true, expectedAmount);
 
-        public static VerifiedNotification VerifySuccessUrl(RobokassaMerchantCredentials credentials, IEnumerable<KeyValuePair<string, string>> fields) =>
+        public static VerifiedNotification VerifySuccessUrl(
+            RobokassaMerchantCredentials credentials,
+            IReadOnlyDictionary<string, string> fields) =>
             Verify(credentials, fields, static credentials => credentials.PaymentPassword, false, null);
 
         public static ResultUrl2Notification VerifyResultUrl2(
@@ -101,51 +106,77 @@ namespace KmsDev.Robokassa
 
         private static VerifiedNotification Verify(
             RobokassaMerchantCredentials credentials,
-            IEnumerable<KeyValuePair<string, string>> fields,
+            IReadOnlyDictionary<string, string> fields,
             Func<RobokassaMerchantCredentials, string> passwordSelector,
             bool result,
             decimal? expectedAmount)
         {
             ArgumentNullException.ThrowIfNull(fields);
             const string operation = "notifications.verify";
-            var all = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            var shp = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var pair in fields)
-            {
-                if (pair.Value is null || !all.TryAdd(pair.Key, pair.Value))
-                {
-                    throw new RobokassaException(RobokassaErrorKind.InvalidSignature, operation);
-                }
 
-                if (pair.Key.StartsWith("Shp_", StringComparison.OrdinalIgnoreCase))
+            var shpFields = new Dictionary<string, string>(StringComparer.Ordinal);
+            var userFields = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            var hasUserPrefix = !string.IsNullOrWhiteSpace(credentials.UserFieldsPrefix);
+
+            var hashParts = new List<string>(fields.Count);
+
+            var outSumRaw = string.Empty;
+            var invIdRaw = string.Empty;
+            var signatureValueRaw = string.Empty;
+
+            foreach (var pair in fields.OrderBy(p=>p.Key,StringComparer.OrdinalIgnoreCase))
+            {
+                if(pair.Key.Equals("OutSum", StringComparison.OrdinalIgnoreCase))
                 {
-                    shp.Add(pair.Key, pair.Value);
+                    outSumRaw = pair.Value;
+                }
+                else if(pair.Key.Equals("InvId", StringComparison.OrdinalIgnoreCase))
+                {
+                    invIdRaw = pair.Value;
+                }
+                else if(pair.Key.Equals("SignatureValue", StringComparison.OrdinalIgnoreCase))
+                {
+                    signatureValueRaw = pair.Value;
+                }
+                else if (pair.Key.StartsWith("Shp_", StringComparison.OrdinalIgnoreCase))
+                {
+                    shpFields.Add(pair.Key, pair.Value);
+                    hashParts.Add($"{pair.Key}={pair.Value}");
+                }
+                else if (hasUserPrefix && pair.Key.StartsWith(credentials.UserFieldsPrefix, StringComparison.Ordinal))
+                {
+                    userFields.Add(pair.Key.Substring(credentials.UserFieldsPrefix.Length), pair.Value);
+                    hashParts.Add($"{pair.Key}={pair.Value}");
                 }
             }
 
-            if (!all.TryGetValue("OutSum", out var sum)
-                || !all.TryGetValue("InvId", out var id)
-                || !all.TryGetValue("SignatureValue", out var actual)
-                || id.Length == 0
-                || id.Any(c => c < '0' || c > '9')
-                || !long.TryParse(id, NumberStyles.None, CultureInfo.InvariantCulture, out var number)
-                || number <= 0)
+            if (!long.TryParse(invIdRaw, NumberStyles.None, CultureInfo.InvariantCulture, out var invId)
+                || invId <= 0)
             {
                 throw new RobokassaException(RobokassaErrorKind.InvalidSignature, operation);
             }
 
-            var parts = new List<string> { sum, id, passwordSelector(credentials) };
+            hashParts.Sort((a, b) => a.CompareTo(b));
+
+            hashParts.Insert(0, outSumRaw);
+            hashParts.Insert(1, invIdRaw);
+            hashParts.Insert(2, passwordSelector(credentials));
+
             try
             {
-                parts.AddRange(RobokassaWire.Shp(shp));
+                //parts.AddRange(RobokassaWire.Shp(shp));
+                //hashParts.AddRange(shp.Select(s => $"{s.Key}={s.Value}"));
+                //hashParts.AddRange(userFields.Select(s => $"{s.Key}={s.Value}"));
             }
             catch (ArgumentException)
             {
                 throw new RobokassaException(RobokassaErrorKind.InvalidSignature, operation);
             }
 
-            var expected = RobokassaSignature.Hash(string.Join(":", parts), credentials.HashAlgorithm);
-            if (!RobokassaSignature.EqualsHex(expected, actual))
+            var expectedHash = RobokassaSignature.Hash(string.Join(":", hashParts), credentials.HashAlgorithm);
+
+            if (!RobokassaSignature.EqualsHex(expectedHash, signatureValueRaw))
             {
                 throw new RobokassaException(RobokassaErrorKind.InvalidSignature, operation);
             }
@@ -153,7 +184,7 @@ namespace KmsDev.Robokassa
             VerifiedNotification notification;
             try
             {
-                notification = new VerifiedNotification(sum, id, shp, result);
+                notification = new VerifiedNotification(outSumRaw, invIdRaw, shpFields, userFields, result);
             }
             catch (ArgumentException)
             {
